@@ -1,0 +1,16 @@
+*.meta
+/Assets/Font/
+*.wav
+*.mat
+/Assets/Scenes/
+/Assets/Application/Data/
+/Assets/Application/Prefab/
+/.vscode/
+/Ifs/
+/Library/
+/Logs/
+/Packages/
+/ProjectSettings/
+/.Build/
+*.csproj
+*.sln
