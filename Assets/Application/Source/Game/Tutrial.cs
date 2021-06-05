@@ -5,10 +5,11 @@ using UnityEngine.UI;
 
 public class Tutrial : MonoBehaviour
 {
+    public static Tutrial Instance{get; private set;}
     public GameObject UIObje;
     public GameObject EnterObj;
     public ContainerManager CM;
-    public BattleManager BM;
+    public GameObject Puzzle;
     public Text text;
 
     public string[] TextData;
@@ -22,23 +23,11 @@ public class Tutrial : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Instance = this;
         text.text = TextData[Curretn];
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            Next();
-        }
-        if (Input.GetKeyDown(KeyCode.Backspace))
-        {
-            Next(-1);
-        }
-    }
-
-    void Next(int _add = 1)
+    public void Next(int _add = 1)
     {
         Curretn+=_add;
         Curretn = Fn.Limit(Curretn, TextData.Length, -1);
@@ -55,17 +44,14 @@ public class Tutrial : MonoBehaviour
         if (Curretn == AddContainerNumber && isContainer == false)
         {
             isContainer = true;
-            for(int i = 3; i < 8; i++)
-            {
-
-                CM.AddContainer(new Vector3Int(i, 0, 2), i % 4);
-                CM.AddContainer(new Vector3Int(i, 0, 8), i % 4);
-            }
+            CM.AddContainer(new Vector3Int(0, 0, 2), 11 + 1);
+            CM.AddContainer(new Vector3Int(0, 0, 3), 11 + 2);
+            CM.AddContainer(new Vector3Int(0, 1, 3), 11 + 2);
         }
         if (Curretn == AddTruckNumber && isTruck == false)
         {
             isTruck= true;
-            BM.gameObject.SetActive(true);
+            Puzzle.SetActive(true);
         }
     }
 }

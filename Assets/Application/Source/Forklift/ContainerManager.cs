@@ -4,48 +4,45 @@ using UnityEngine;
 
 public class ContainerManager : MonoBehaviour
 {
-    public ContainerMap Map;
+    public MapData mapData;
     public GameObject[] Prefabs;
     public GameObject Floor;
-    public Vector2Int MapSize = new Vector2Int(10, 10);
     public float Size = 1.3f;
     public float Hight = 1.65f;
     public ContainerInstance[] Containers;
 
     public int[,,] NumberMap;
-    // Start is called before the first frame update
-    IEnumerator Start()
+    // -1 Floor
+    // -2 Empty
+    // 0~ CheckContainer
+
+    public bool Active = false;
+    
+    public IEnumerator Load()
     {
+        while(MapData.Instance == null)
+        {
+            yield return null;
+        }
+        while(!MapData.Instance.Complete)
+        {
+            yield return null;
+        }
         Containers = new ContainerInstance[16*16*2];
         yield return null;
-        MapSize = new Vector2Int(Map.LowZ.Length, Map.LowZ[0].X.Length);
-        NumberMap = new int[MapSize.x, 2, MapSize.y];
-        for (int x = 2; x < MapSize.x - 2; x++)
+        NumberMap = new int[mapData.Size.x, 2, mapData.Size.z];
+        for (int x = 0; x < mapData.Size.x; x++)
         {
-            for (int y = 2; y < MapSize.y - 2; y++)
+            for (int z = 0; z < mapData.Size.z; z++)
             {
-                Transform _obj = Instantiate(Floor, transform).transform;
-                _obj.position = WorldPosition(new Vector3Int(x, 0, y));
+                NumberMap[x, 0, z] = -2;
+                AddContainer(new Vector3Int(x, 0, z), (int)mapData.Get(x, 0, z));
+                NumberMap[x, 1, z] = -2;
+                AddContainer(new Vector3Int(x, 1, z), (int)mapData.Get(x, 1, z));
             }
             yield return null;
         }
-        for (int x = 0; x < MapSize.x; x++)
-        {
-            for (int z = 0; z < MapSize.y; z++)
-            {
-                NumberMap[x, 0, z] = -1;
-                AddContainer(new Vector3Int(x, 0, z), Map.LowZ[z].X[x]);
-                NumberMap[x, 1, z] = -1;
-                AddContainer(new Vector3Int(x, 1, z), Map.HighZ[z].X[x]);
-            }
-            yield return null;
-        }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        Active = true;
     }
 
     public Vector3 WorldPosition(Vector3Int _pos)
@@ -90,34 +87,39 @@ public class ContainerManager : MonoBehaviour
 
     public void AddContainer( Vector3Int _pos, int _type = 0)
     {
-        if(_type < 0 || _type >= Prefabs.Length) { return; }
-        int _cur = -1;
-        for(int i = 0; i < Containers.Length; i++)
+        if(_type > 0 && _pos.y == 0)
         {
-            if(Containers[i] == null)
-            {
-                _cur = i;
-                break;
-            }
+            Transform _obj = Instantiate(Floor, transform).transform;
+            _obj.position = WorldPosition(new Vector3Int(_pos.x, 0, _pos.z));
         }
-        if(_cur == -1) { return; }
+        if(_type - 10 < 0 || _type - 10 >= Prefabs.Length) { 
+            if(_type > 0)
+            {
+                NumberMap[_pos.x, _pos.y, _pos.z] = -2;
+            }
+            return; 
+        }
 
-        if(NumberMap[_pos.x, _pos.y, _pos.z] != -1) { Debug.Log("すでにあります。",transform); return; }
-        NumberMap[_pos.x, _pos.y, _pos.z] = _cur;
-
-        Containers[_cur] = new ContainerInstance();
-        Containers[_cur].Type = _type;
-        Containers[_cur].Position = _pos;
-        if(_pos.x > MapSize.x - 3 || _pos.z > MapSize.y - 3 || _pos.x < 2 || _pos.z < 2)
+        if(_type - 10 >= 0 && _type -10 < Prefabs.Length)
         {
-            if(_type == 0)
+            int _cur = -2;
+            for(int i = 0; i < Containers.Length; i++)
             {
-                Containers[_cur].Type = 0;
-                return;
+                if(Containers[i] == null)
+                {
+                    _cur = i;
+                    break;
+                }
             }
+            if(_cur == -2) { return; }
+            NumberMap[_pos.x, _pos.y, _pos.z] = _cur;
+
+            Containers[_cur] = new ContainerInstance();
+            Containers[_cur].Type = _type;
+            Containers[_cur].Position = _pos;
+            Containers[_cur].Tra = Instantiate(Prefabs[_type - 10], transform).transform;
+            Containers[_cur].Tra.position = WorldPosition(new Vector3Int(_pos.x, _pos.y, _pos.z));
         }
-        Containers[_cur].Tra = Instantiate(Prefabs[_type], transform).transform;
-        Containers[_cur].Tra.position = WorldPosition(new Vector3Int(_pos.x, _pos.y, _pos.z));
     }
 
     public void DeleteContainer( int _cur)
@@ -131,8 +133,39 @@ public class ContainerManager : MonoBehaviour
         {
             Destroy(Containers[_cur].Tra.gameObject);
         }
-        NumberMap[Containers[_cur].Position.x, Containers[_cur].Position.y, Containers[_cur].Position.z] = -1;
+
+        if(Containers[_cur].Position.y == 0)
+        {
+            NumberMap[Containers[_cur].Position.x, Containers[_cur].Position.y, Containers[_cur].Position.z] = -1;
+        }
+        else
+        {
+            NumberMap[Containers[_cur].Position.x, Containers[_cur].Position.y, Containers[_cur].Position.z] = -2;
+        }
         Containers[_cur] = null;
+    }
+
+    public bool GetCanMove(int _x, int _z)
+    {
+        int _typeD = (int)mapData.Get(_x, 0, _z);
+        if( (_typeD > 0 && _typeD < 30) )
+        {
+            if(NumberMap[_x, 0, _z] < 0 && NumberMap[_x, 1, _z] < 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int GetContainer(int _x, int _y, int _z)
+    {
+        if(_x >= 0 && _x < mapData.Size.x && _z >= 0 && _z < mapData.Size.z && _y >= 0 && _y < 2)
+        {
+            
+            return NumberMap[_x, _y, _z];
+        }
+        return -1;
     }
 }
 

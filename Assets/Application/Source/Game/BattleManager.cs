@@ -30,6 +30,8 @@ public class BattleManager : MonoBehaviour
 
     bool gameOver = false;
 
+    bool isActive = false;
+
     // Start is called before the first frame update
     IEnumerator Start()
     {
@@ -49,6 +51,7 @@ public class BattleManager : MonoBehaviour
             if (_num != -1) { CM.DeleteContainer(_num); }
             CM.AddContainer(OutportPosisions[i], Random.Range(2, RandomRange));
         }
+        isActive = true;
     }
 
     // Update is called once per frame
@@ -71,11 +74,6 @@ public class BattleManager : MonoBehaviour
             BMMessage.text += "出荷に置いたコンテナ：" + InCount.ToString() + "\n";
             BMMessage.text += "現在のスコア：" + Score.ToString() + "\n";
         }
-
-        if(Input.GetKeyDown(KeyCode.F1))
-        {
-            SceneManager.LoadScene("Title");
-        }
     }
 
     IEnumerator GameOverStream()
@@ -91,6 +89,7 @@ public class BattleManager : MonoBehaviour
 
     public void TruckCheck()
     {
+        if(!isActive){return;}
         if(OutCount < 0 || InCount > 4) { return; }
         InCount = 0;
         OutCount = 0;
